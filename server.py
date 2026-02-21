@@ -132,8 +132,11 @@ def get_youtube_transcript(video_id_or_url: str) -> str:
         video_id = _extract_youtube_video_id(video_id_or_url)
         logger.info("Resolved video ID: %s", video_id)
 
+        # Instantiate the API client (required in v1.x+)
+        ytt_api = YouTubeTranscriptApi()
+
         # List all available transcripts
-        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+        transcript_list = ytt_api.list(video_id)
 
         # Try to find a manual English transcript, then generated English, then any
         try:
@@ -151,7 +154,7 @@ def get_youtube_transcript(video_id_or_url: str) -> str:
         transcript_data = transcript.fetch()
 
         # Combine transcript text
-        full_text = " ".join([entry.text for entry in transcript_data])
+        full_text = " ".join([snippet.text for snippet in transcript_data])
         return full_text
     except Exception as e:
         logger.error("Transcript fetch failed for %s: %s", video_id_or_url, e)
