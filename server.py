@@ -7,6 +7,14 @@ from mcp.server.fastmcp import FastMCP
 from ddgs import DDGS
 import trafilatura
 from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api._errors import (
+    TranscriptsDisabled,
+    NoTranscriptFound,
+    VideoUnavailable,
+    RequestBlocked,
+    IpBlocked,
+    AgeRestricted,
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -128,34 +136,40 @@ def get_youtube_transcript(video_id_or_url: str) -> str:
         video_id_or_url: A YouTube video ID or URL.
     """
     logger.info("Fetching transcript for: %s", video_id_or_url)
+    video_id = _extract_youtube_video_id(video_id_or_url)
+    logger.info("Resolved video ID: %s", video_id)
+
     try:
-        video_id = _extract_youtube_video_id(video_id_or_url)
-        logger.info("Resolved video ID: %s", video_id)
-
-        # Instantiate the API client (required in v1.x+)
         ytt_api = YouTubeTranscriptApi()
-
-        # List all available transcripts
-        transcript_list = ytt_api.list(video_id)
-
-        # Try to find a manual English transcript, then generated English, then any
-        try:
-            transcript = transcript_list.find_manually_created_transcript(['en'])
-        except Exception:
-            try:
-                transcript = transcript_list.find_generated_transcript(['en'])
-            except Exception:
-                try:
-                    transcript = next(iter(transcript_list))
-                except StopIteration:
-                    return f"No transcript found for video {video_id}"
-
-        # Fetch the actual transcript data
-        transcript_data = transcript.fetch()
-
-        # Combine transcript text
-        full_text = " ".join([snippet.text for snippet in transcript_data])
+        transcript_data = ytt_api.fetch(video_id, languages=["en"])
+        full_text = " ".join(snippet.text for snippet in transcript_data.snippets)
         return full_text
+
+    except TranscriptsDisabled:
+        return (
+            f"Error: Subtitles are disabled for this video ({video_id}). "
+            "The uploader has turned off captions, so no transcript is available."
+        )
+    except NoTranscriptFound:
+        return (
+            f"Error: No transcript found for video {video_id} in the requested language. "
+            "The video may only have captions in other languages."
+        )
+    except VideoUnavailable:
+        return (
+            f"Error: Video {video_id} is unavailable. "
+            "It may have been deleted, made private, or is region-restricted."
+        )
+    except AgeRestricted:
+        return (
+            f"Error: Video {video_id} is age-restricted. "
+            "Transcript retrieval requires authentication (cookies) for this video."
+        )
+    except (RequestBlocked, IpBlocked):
+        return (
+            "Error: YouTube is currently blocking transcript requests from this server. "
+            "This is usually a temporary IP-based restriction. Try again later."
+        )
     except Exception as e:
         logger.error("Transcript fetch failed for %s: %s", video_id_or_url, e)
         return f"Error fetching transcript: {str(e)}"
