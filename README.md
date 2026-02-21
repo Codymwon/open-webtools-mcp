@@ -1,6 +1,6 @@
 # Web Search MCP Server (Free)
 
-A free MCP server providing web search, website reading, and YouTube transcript tools for LLMStudio and other MCP clients. Uses DuckDuckGo — no API keys required.
+A free MCP server providing web search, website reading, and YouTube transcript tools for LLMStudio and other MCP clients. Uses DuckDuckGo, no API keys required.
 
 ## Installation
 
