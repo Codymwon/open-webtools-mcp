@@ -1,0 +1,5 @@
+mcp>=1.0.0,<2.0.0
+ddgs>=7.0.0,<8.0.0
+trafilatura>=2.0.0,<3.0.0
+lxml_html_clean
+youtube-transcript-api>=1.0.0,<2.0.0
